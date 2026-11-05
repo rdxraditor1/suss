@@ -5,7 +5,6 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
-# Ensures only one run happens at a time to prevent state.json conflicts
 concurrency:
   group: telegram-claimer
   cancel-in-progress: false
@@ -35,12 +34,15 @@ jobs:
 
       - name: Install System Dependencies (Chrome & Xvfb)
         run: |
-          sudo apt-get update
+          # Use || true to prevent Microsoft repo 403 errors from crashing the build
+          sudo apt-get update || true
+          
+          # Install required system libraries for Chrome
           sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
-          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=*] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          
+          # Download and install Google Chrome directly (bypasses broken apt repos)
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
 
       - name: Install Python Requirements
         run: |
@@ -70,7 +72,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action@github.com"
-          # Ensure state.json is tracked even if it was just created
           git add -f state.json
           
           if ! git diff --staged --quiet; then
