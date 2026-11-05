@@ -36,8 +36,16 @@ phone = os.environ.get("TELEGRAM_PHONE", "").strip()
 session_string = os.environ.get("TELEGRAM_SESSION", "").strip()
 initial_channel = os.environ.get("INITIAL_CHANNEL_USERNAME", "").strip().replace("@", "")
 
-if not all([api_id_str, api_hash, phone, session_string, initial_channel]):
-    logger.critical("❌ CRITICAL: One or more GitHub Secrets are missing or empty!")
+missing_secrets = []
+if not api_id_str: missing_secrets.append("TELEGRAM_API_ID")
+if not api_hash: missing_secrets.append("TELEGRAM_API_HASH")
+if not phone: missing_secrets.append("TELEGRAM_PHONE")
+if not session_string: missing_secrets.append("TELEGRAM_SESSION")
+if not initial_channel: missing_secrets.append("INITIAL_CHANNEL_USERNAME")
+
+if missing_secrets:
+    logger.critical(f"❌ CRITICAL: The following GitHub Secrets are missing or empty: {', '.join(missing_secrets)}")
+    logger.critical("Go to Repo -> Settings -> Secrets and variables -> Actions to add them.")
     sys.exit(1)
 
 try:
