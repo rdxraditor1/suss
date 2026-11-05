@@ -149,20 +149,30 @@ async def main():
         sys.exit(1)
 
     try:
-        # If we don't have a channel saved yet, resolve the initial one
+        # ---------------------------------------------------------
+        # FIRST RUN VALIDATION (DRY RUN)
+        # ---------------------------------------------------------
         if not state.get("channel_id"):
-            logger.info(f"First run: Resolving provided channel @{INITIAL_CHANNEL}...")
+            logger.info(f"First run: Validating provided channel @{INITIAL_CHANNEL}...")
             try:
                 entity = await client.get_entity(INITIAL_CHANNEL)
                 state["channel_id"] = entity.id
                 state["access_hash"] = entity.access_hash
                 state["current_username"] = INITIAL_CHANNEL
                 save_state(state)
-                logger.info("Channel resolved and state updated.")
+                logger.info("✅ Channel successfully found and saved to state.")
+                logger.info("🏁 Validation mode complete. Exiting now.")
+                logger.info("The next scheduled run will start the actual claims.")
+                await client.disconnect()
+                sys.exit(0)  # <--- EXIT HERE! No browser, no claims.
             except Exception as e:
-                logger.critical(f"Failed to resolve @{INITIAL_CHANNEL}. Is it public? Error: {e}")
+                logger.critical(f"❌ Failed to resolve @{INITIAL_CHANNEL}. Is the username correct? Error: {e}")
                 await client.disconnect()
                 sys.exit(1)
+
+        # ---------------------------------------------------------
+        # SUBSEQUENT RUNS (LIVE)
+        # ---------------------------------------------------------
         else:
             # We already have the channel. Rotate the username.
             logger.info("Existing channel found. Rotating username...")
@@ -189,7 +199,7 @@ async def main():
                 logger.error("❌ Channel is invalid (did you delete it?). Resetting state...")
                 state = {"cycle": 0, "channel_id": None, "access_hash": None, "current_username": None}
                 save_state(state)
-                sys.exit(0) # Exit and let next run pick up INITIAL_CHANNEL
+                sys.exit(0)
             except FloodWaitError as e:
                 logger.error(f"⚠️ Telegram FloodWait: {e.seconds} seconds.")
                 sys.exit(0)
