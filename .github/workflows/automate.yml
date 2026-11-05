@@ -21,10 +21,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # Swapped to a more reliable WARP action and added a timeout
       - name: Setup Cloudflare WARP
-        uses: fscarmen/warp-on-actions@v1.4
-        with:
-          mode: 'wireguard'
+        uses: hjenryin/cloudflare-warp-action@main
+        timeout-minutes: 3
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -34,13 +34,9 @@ jobs:
 
       - name: Install System Dependencies (Chrome & Xvfb)
         run: |
-          # Use || true to prevent Microsoft repo 403 errors from crashing the build
           sudo apt-get update || true
-          
-          # Install required system libraries for Chrome
           sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
           
-          # Download and install Google Chrome directly (bypasses broken apt repos)
           wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
 
@@ -58,7 +54,6 @@ jobs:
           INITIAL_CHANNEL_USERNAME: ${{ secrets.INITIAL_CHANNEL_USERNAME }}
         run: python main.py
 
-      # Upload screenshots if the browser fails
       - name: Upload Debug Screenshots
         if: failure()
         uses: actions/upload-artifact@v4
